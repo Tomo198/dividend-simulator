@@ -1,0 +1,41 @@
+{
+  "name": "distribution-dividend-simulator",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "dev": "vinext dev",
+    "build": "node scripts/build.mjs",
+    "start": "vinext start",
+    "test": "npm run test:unit && npm run test:smoke",
+    "test:unit": "vitest run",
+    "test:smoke": "npm run build && node --test tests/rendered-html.test.mjs",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+    "verify": "npm run lint && npm run typecheck && npm test"
+  },
+  "dependencies": {
+    "next": "16.2.6",
+    "react": "19.2.6",
+    "react-dom": "19.2.6"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "1.37.1",
+    "@types/node": "22.19.19",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.2",
+    "@vitejs/plugin-rsc": "0.5.26",
+    "eslint": "9.39.4",
+    "eslint-config-next": "16.2.6",
+    "react-server-dom-webpack": "19.2.6",
+    "typescript": "5.9.3",
+    "vinext": "0.0.50",
+    "vite": "8.0.13",
+    "vitest": "^3.2.4",
+    "wrangler": "4.92.0"
+  },
+  "type": "module"
+}
