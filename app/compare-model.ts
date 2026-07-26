@@ -71,7 +71,7 @@ export function createComparisonAsset(index: number): ComparisonAssetValues {
       annualDividendPerShare: "300",
       initialYieldPercent: "3",
       stableDividendGrowthRatePercent: "5",
-      annualPriceGrowthRatePercent: "5",
+      annualPriceGrowthRatePercent: "0",
       expenseRatioPercent: "0.1",
     };
   }

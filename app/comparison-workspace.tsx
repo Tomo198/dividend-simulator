@@ -237,8 +237,8 @@ export function ComparisonWorkspace({ value, onChange, onOpenSingle }: Compariso
           </div>
           <p className="comparison-fairness-note">
             {isSingle
-              ? "この条件で配当・資産・目標を試算します。"
-              : "すべての銘柄に同じ条件を使います。"}
+              ? "価格の値動きは0%とし、配当・資産・目標を試算します。"
+              : "すべての銘柄に同じ条件を使い、価格の値動きは0%とします。"}
           </p>
         </fieldset>
 
@@ -279,7 +279,6 @@ export function ComparisonWorkspace({ value, onChange, onOpenSingle }: Compariso
                 <NumberField label="1口あたり年間配当" value={asset.annualDividendPerShare} onChange={(next) => setAssetDividend(asset.id, next)} suffix="円" min="0" />
                 <NumberField label="現在利回り" value={asset.initialYieldPercent} onChange={(next) => setAssetYield(asset.id, next)} suffix="%" min="0" />
                 <NumberField label="配当の年間変化" value={asset.stableDividendGrowthRatePercent} onChange={(next) => setAssetField(asset.id, "stableDividendGrowthRatePercent", next)} suffix="%" min="-99.99" />
-                <NumberField label="価格の年間変化" value={asset.annualPriceGrowthRatePercent} onChange={(next) => setAssetField(asset.id, "annualPriceGrowthRatePercent", next)} suffix="%" min="-99.99" />
                 <SelectField label="口座・税" value={asset.taxTreatment} onChange={(next) => setAssetField(asset.id, "taxTreatment", next as TaxTreatment)}>
                   <option value="foreignCredit">課税口座（外国税控除あり）</option>
                   <option value="noForeignCredit">課税口座（外国税控除なし）</option>
@@ -303,12 +302,6 @@ export function ComparisonWorkspace({ value, onChange, onOpenSingle }: Compariso
                       </>
                     )}
                     <NumberField label="経費率（信託報酬など）" value={asset.expenseRatioPercent} onChange={(next) => setAssetField(asset.id, "expenseRatioPercent", next)} suffix="%／年" min="0" max="100" />
-                    {Number(asset.expenseRatioPercent) > 0 && (
-                      <SelectField label="価格変化率の基準" value={asset.returnBasis} onChange={(next) => setAssetField(asset.id, "returnBasis", next as ComparisonAssetValues["returnBasis"])}>
-                        <option value="netOfExpense">経費を差し引いた後</option>
-                        <option value="grossBeforeExpense">経費を差し引く前</option>
-                      </SelectField>
-                    )}
                   </div>
                 </div>
               </details>
@@ -414,8 +407,8 @@ export function ComparisonWorkspace({ value, onChange, onOpenSingle }: Compariso
                 <p>{isSingle ? "入力条件での長期試算です。" : "すべて同じ投資条件です。"}</p>
               </div>
               <div className="charts-grid">
-                <LineChart title="年間手取り配当" description="各年の税引後配当" data={dividendChartData} series={series} formatValue={formatCompactJpy} />
-                <LineChart title="受取配当込み資産" description="評価額＋受け取った配当" data={wealthChartData} series={series} formatValue={formatCompactJpy} />
+                <LineChart title="年間手取り配当" description="各年の税引後配当" data={dividendChartData} series={series} formatValue={formatCompactJpy} formatDetailValue={formatJpy} />
+                <LineChart title="受取配当込み資産" description="評価額＋受け取った配当" data={wealthChartData} series={series} formatValue={formatCompactJpy} formatDetailValue={formatJpy} />
               </div>
             </section>
 

@@ -60,12 +60,12 @@ test("server-renders the phase 5D simulator workspace", async () => {
   assert.match(html, /課税口座（外国税控除あり）/);
   assert.match(html, /現在価格/);
   assert.match(html, /配当の年間変化/);
-  assert.match(html, /価格の年間変化/);
+  assert.match(html, /将来の値動きは0%/);
   assert.match(html, /value="1000000"/);
   assert.doesNotMatch(html, />商品種別</);
   assert.doesNotMatch(html, />通貨</);
   assert.doesNotMatch(html, /USD（米ドル）|現在為替|為替スプレッド/);
-  assert.doesNotMatch(html, />開始日<|減配イベントを追加|購入手数料を設定する|端数株を購入する|期末に売却する/);
+  assert.doesNotMatch(html, />開始日<|減配イベントを追加|購入手数料を設定する|端数株を購入する|期末に売却する|価格の年間変化|価格変化率の基準/);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton|Your site is taking shape/i);
 });
 

@@ -21,6 +21,8 @@ describe("ComparisonWorkspace", () => {
     expect(html).toContain("受取配当込み資産");
     expect(html).toContain("4つの条件で比較");
     expect(html).toContain("総合順位や購入推奨ではなく");
+    expect(html).not.toContain("価格の年間変化");
+    expect(html).not.toContain("価格変化率の基準");
   });
 
   it("1銘柄だけでも詳しく試算し、比較順位を表示しない", () => {

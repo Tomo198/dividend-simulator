@@ -477,10 +477,9 @@ export function DividendSimulator({ appVersion }: DividendSimulatorProps) {
 
             <fieldset>
               <legend>将来の想定</legend>
-              <p className="fieldset-note">配当と価格が、毎年どの程度変化するかを入力します。</p>
+              <p className="fieldset-note">配当の変化と、受け取った配当をどの程度再投資するかを入力します。</p>
               <div className="field-grid condition-grid">
                 <NumberField label="配当の年間変化" value={form.stableDividendGrowthRatePercent} onChange={(value) => setField("stableDividendGrowthRatePercent", value)} suffix="%" min="-99.99" help="マイナスで減配" />
-                <NumberField label="価格の年間変化" value={form.annualPriceGrowthRatePercent} onChange={(value) => setField("annualPriceGrowthRatePercent", value)} suffix="%" min="-99.99" help="配当との差で利回りも変化" />
                 <NumberField label="配当の再投資" value={form.dividendReinvestmentRatePercent} onChange={(value) => setField("dividendReinvestmentRatePercent", value)} suffix="%" min="0" max="100" />
               </div>
             </fieldset>
@@ -579,12 +578,6 @@ export function DividendSimulator({ appVersion }: DividendSimulatorProps) {
                       </>
                     )}
                     <NumberField label="経費率（信託報酬など）" value={form.expenseRatioPercent} onChange={(value) => setField("expenseRatioPercent", value)} suffix="%／年" min="0" max="100" help="個別株は通常0%" />
-                    {Number(form.expenseRatioPercent) > 0 && (
-                      <SelectField label="価格変化率の基準" value={form.returnBasis} onChange={(value) => setField("returnBasis", value as SimulatorFormValues["returnBasis"])} help="控除後なら経費を重ねて引きません">
-                        <option value="netOfExpense">経費を差し引いた後</option>
-                        <option value="grossBeforeExpense">経費を差し引く前</option>
-                      </SelectField>
-                    )}
                   </div>
                   {form.taxTreatment === "foreignCredit" && (
                     <p className="setting-note">外国税を全額控除できる想定です。実際の控除額・時期は異なります。</p>
@@ -662,6 +655,7 @@ export function DividendSimulator({ appVersion }: DividendSimulatorProps) {
                     data={chartData}
                     series={[{ key: "netDividend", label: "手取り配当", color: "#0b7a55" }]}
                     formatValue={formatCompactJpy}
+                    formatDetailValue={formatJpy}
                   />
                   <LineChart
                     title="資産の推移"
@@ -673,6 +667,7 @@ export function DividendSimulator({ appVersion }: DividendSimulatorProps) {
                       { key: "totalWealth", label: "受取配当込み資産", color: "#d39a2d" },
                     ]}
                     formatValue={formatCompactJpy}
+                    formatDetailValue={formatJpy}
                   />
                   <LineChart
                     title="配当の受取と再投資"
@@ -683,6 +678,7 @@ export function DividendSimulator({ appVersion }: DividendSimulatorProps) {
                       { key: "cumulativeReinvested", label: "再投資", color: "#a46b27" },
                     ]}
                     formatValue={formatCompactJpy}
+                    formatDetailValue={formatJpy}
                   />
                 </div>
               </section>
@@ -753,8 +749,8 @@ export function DividendSimulator({ appVersion }: DividendSimulatorProps) {
                   <h2 id="notes-title">試算の前提</h2>
                 </div>
                 <ul className="basis-list">
-                  <li>価格の年間変化は{form.returnBasis === "netOfExpense" ? "経費控除後" : "経費控除前"}で計算します。</li>
-                  <li>利回りは配当と価格の変化に応じて毎年変わります。</li>
+                  <li>将来の値動きは0%とし、経費率だけを価格へ反映します。</li>
+                  <li>利回りは配当の変化と経費の影響に応じて毎年変わります。</li>
                   <li>月初の購入分も当月の配当対象とする概算です。</li>
                   <li>税額・端数処理・外国税額控除は概算です。</li>
                 </ul>

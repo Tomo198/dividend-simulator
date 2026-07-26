@@ -1626,6 +1626,13 @@ legend {
   overflow: hidden;
   border-radius: 8px;
   background: linear-gradient(180deg, rgba(243, 245, 240, 0.55), rgba(255, 255, 255, 0));
+  cursor: crosshair;
+  touch-action: pan-y;
+}
+
+.chart-frame:focus-visible {
+  outline: 3px solid rgba(11, 122, 85, 0.25);
+  outline-offset: 3px;
 }
 
 .chart-frame svg {
@@ -1640,9 +1647,83 @@ legend {
   vector-effect: non-scaling-stroke;
 }
 
+.chart-grid-line-vertical {
+  stroke-dasharray: 3 4;
+}
+
 .chart-axis-label {
   fill: #7a8681;
-  font-size: 11px;
+  font-size: 10px;
+}
+
+.chart-selection-line {
+  stroke: #152f26;
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+  vector-effect: non-scaling-stroke;
+}
+
+.chart-selection-dot {
+  stroke: #fff;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.chart-interaction-hint {
+  margin: 9px 0 0;
+  color: var(--muted);
+  font-size: 0.66rem;
+}
+
+.chart-point-detail {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid #dbe5df;
+  border-radius: 10px;
+  background: #f7faf8;
+}
+
+.chart-point-detail > strong {
+  flex: 0 0 auto;
+  color: var(--accent-dark);
+  font-size: 0.78rem;
+}
+
+.chart-point-detail dl {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 0;
+}
+
+.chart-point-detail dl div {
+  display: grid;
+  gap: 2px;
+}
+
+.chart-point-detail dt {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 0.62rem;
+}
+
+.chart-point-detail dt span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.chart-point-detail dd {
+  margin: 0;
+  font-size: 0.76rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 
 .table-scroll {
@@ -1886,6 +1967,16 @@ footer p {
 
   .chart-frame svg {
     height: 220px;
+  }
+
+  .chart-point-detail {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .chart-point-detail dl {
+    width: 100%;
   }
 
   .notes-section {

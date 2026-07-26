@@ -51,7 +51,7 @@ describe("simulator form model", () => {
     expect(calculateAnnualDividend("1000", "4")).toBe("40");
   });
 
-  it("配当変化率と価格変化率の差を年次利回りへ反映する", () => {
+  it("公開画面の価格変化を0%へ固定し、配当変化を年次利回りへ反映する", () => {
     const input = buildSimulationInput({
       ...INITIAL_FORM_VALUES,
       currentPrice: "100",
@@ -67,6 +67,8 @@ describe("simulator form model", () => {
       domesticTaxRatePercent: "0",
     });
     const result = simulateDividendInvestment(input, { calculateXirr: false });
+    expect(input.asset.growth.annualPriceGrowthRate).toBe(0);
+    expect(input.asset.growth.returnBasis).toBe("grossBeforeExpense");
     expect(result.annual[1].endingForwardYield).toBeLessThan(result.annual[0].endingForwardYield!);
   });
 
@@ -103,6 +105,8 @@ describe("simulator form model", () => {
     expect(input.asset.growth.highGrowthYears).toBe(0);
     expect(input.asset.growth.dividendEvents).toEqual([]);
     expect(input.asset.growth.initialDividendGrowthRate).toBe(input.asset.growth.stableDividendGrowthRate);
+    expect(input.asset.growth.annualPriceGrowthRate).toBe(0);
+    expect(input.asset.growth.returnBasis).toBe("grossBeforeExpense");
   });
 
   it("月額目標を年額へ換算する", () => {
