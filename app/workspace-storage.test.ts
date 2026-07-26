@@ -56,6 +56,28 @@ describe("workspace storage schema", () => {
       single: { ...workspace.single, currentPrice: 10_000 },
     }))).toBeNull();
   });
+
+  it("保存日時と単体・比較の数値条件を検証する", () => {
+    expect(parseSavedWorkspace(JSON.stringify({
+      ...workspace,
+      savedAt: "invalid-date",
+    }))).toBeNull();
+    expect(parseSavedWorkspace(JSON.stringify({
+      ...workspace,
+      single: { ...workspace.single, currentPrice: "abc" },
+    }))).toBeNull();
+    expect(parseSavedWorkspace(JSON.stringify({
+      ...workspace,
+      single: { ...workspace.single, dividendReinvestmentRatePercent: "101" },
+    }))).toBeNull();
+    expect(parseSavedWorkspace(JSON.stringify({
+      ...workspace,
+      comparison: {
+        ...workspace.comparison,
+        common: { ...workspace.comparison.common, years: "0" },
+      },
+    }))).toBeNull();
+  });
 });
 
 describe("named workspace collection", () => {
@@ -103,6 +125,20 @@ describe("named workspace collection", () => {
     expect(parseNamedWorkspaceCollection(JSON.stringify(duplicate))).toBeNull();
   });
 
+  it("不正な入力条件を名前付き保存しない", () => {
+    const invalidWorkspace = {
+      ...workspace,
+      single: { ...workspace.single, targetAmount: "0" },
+    };
+
+    expect(() => upsertNamedWorkspace(
+      createEmptyNamedWorkspaceCollection(),
+      "不正な試算",
+      invalidWorkspace,
+      "save-1",
+    )).toThrow("入力条件を確認してください");
+  });
+
   it("削除は対象の保存項目だけを一覧から除く", () => {
     const first = upsertNamedWorkspace(createEmptyNamedWorkspaceCollection(), "試算A", workspace, "save-1");
     const second = upsertNamedWorkspace(first, "試算B", workspace, "save-2");
@@ -141,6 +177,21 @@ describe("JSON workspace backup", () => {
     expect(parseWorkspaceBackup(JSON.stringify({
       ...valid,
       items: [{ ...valid.items[0], workspace: { ...workspace, activeMode: "unknown" } }],
+    }))).toBeNull();
+    expect(parseWorkspaceBackup(JSON.stringify({
+      ...valid,
+      items: [{
+        ...valid.items[0],
+        workspace: {
+          ...workspace,
+          comparison: {
+            ...workspace.comparison,
+            assets: workspace.comparison.assets.map((asset, index) => (
+              index === 0 ? { ...asset, currentPrice: "not-a-number" } : asset
+            )),
+          },
+        },
+      }],
     }))).toBeNull();
   });
 

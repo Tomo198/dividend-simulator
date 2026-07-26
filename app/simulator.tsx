@@ -187,8 +187,10 @@ export function DividendSimulator() {
       setSavedWorkspaces(next);
       setSaveName(normalizedName);
       setStorageStatus(`「${normalizedName}」を${wasExisting ? "上書き" : "保存"}しました`);
-    } catch {
-      setStorageStatus("保存できません。ブラウザの設定を確認してください。");
+    } catch (error) {
+      setStorageStatus(error instanceof RangeError
+        ? error.message
+        : "保存できません。ブラウザの設定を確認してください。");
     }
   };
 
@@ -415,12 +417,16 @@ export function DividendSimulator() {
               <p className="panel-kicker">条件</p>
               <h2 id="input-title">条件を入力</h2>
             </div>
-            <span className="auto-update" aria-live="polite">自動更新</span>
+            <div className="panel-heading-actions">
+              <span className="auto-update" aria-live="polite">自動更新</span>
+              <a className="panel-jump-link" href="#results-title">結果を見る</a>
+            </div>
           </div>
 
           <form onSubmit={(event) => event.preventDefault()} noValidate>
             <fieldset>
-              <legend>基本情報</legend>
+              <legend>銘柄情報</legend>
+              <p className="fieldset-note">現在の価格と、1口あたりの年間配当を入力します。</p>
               <label className="field field-full">
                 <span className="field-label">銘柄名 <small>任意</small></span>
                 <input
@@ -430,7 +436,7 @@ export function DividendSimulator() {
                   placeholder="例：サンプルETF"
                 />
               </label>
-              <div className="field-grid">
+              <div className="field-grid condition-grid">
                 <NumberField
                   label="現在価格"
                   value={form.currentPrice}
@@ -456,14 +462,29 @@ export function DividendSimulator() {
             </fieldset>
 
             <fieldset>
-              <legend>投資・将来設定</legend>
-              <div className="field-grid">
+              <legend>投資条件</legend>
+              <p className="fieldset-note">投資する金額と期間を入力します。</p>
+              <div className="field-grid condition-grid">
                 <NumberField label="初期投資" value={form.initialInvestmentJpy} onChange={(value) => setField("initialInvestmentJpy", value)} suffix="円" min="0" step="10000" />
                 <NumberField label="毎月積立" value={form.monthlyContributionJpy} onChange={setMonthlyContribution} suffix="円" min="0" step="1000" />
                 <NumberField label="運用期間" value={form.years} onChange={(value) => setField("years", value)} suffix="年" min="1" max="50" step="1" />
+              </div>
+            </fieldset>
+
+            <fieldset>
+              <legend>将来の想定</legend>
+              <p className="fieldset-note">配当と価格が、毎年どの程度変化するかを入力します。</p>
+              <div className="field-grid condition-grid">
                 <NumberField label="配当の年間変化" value={form.stableDividendGrowthRatePercent} onChange={(value) => setField("stableDividendGrowthRatePercent", value)} suffix="%" min="-99.99" help="マイナスで減配" />
                 <NumberField label="価格の年間変化" value={form.annualPriceGrowthRatePercent} onChange={(value) => setField("annualPriceGrowthRatePercent", value)} suffix="%" min="-99.99" help="配当との差で利回りも変化" />
                 <NumberField label="配当の再投資" value={form.dividendReinvestmentRatePercent} onChange={(value) => setField("dividendReinvestmentRatePercent", value)} suffix="%" min="0" max="100" />
+              </div>
+            </fieldset>
+
+            <fieldset>
+              <legend>口座・税</legend>
+              <p className="fieldset-note">手取り配当の計算方法を選びます。</p>
+              <div className="field-grid field-grid-single">
                 <SelectField label="口座・税" value={form.taxTreatment} onChange={(value) => setField("taxTreatment", value as TaxTreatment)} help="海外資産の税率は詳細設定で指定">
                   <option value="foreignCredit">課税口座（外国税控除あり）</option>
                   <option value="noForeignCredit">課税口座（外国税控除なし）</option>
@@ -571,6 +592,8 @@ export function DividendSimulator() {
 
               </div>
             </details>
+
+            <a className="form-result-link" href="#results-title">入力した条件で結果を見る</a>
           </form>
         </aside>
 
@@ -583,9 +606,17 @@ export function DividendSimulator() {
               </h2>
             </div>
             {result && (
-              <p className="assumption-summary">
-                {form.years}年・再投資{form.dividendReinvestmentRatePercent}%・{taxTreatmentLabel}
-              </p>
+              <div className="results-heading-aside">
+                <p className="assumption-summary">
+                  {form.years}年・再投資{form.dividendReinvestmentRatePercent}%・{taxTreatmentLabel}
+                </p>
+                {activeMode === "single" && (
+                  <nav className="result-jump-links" aria-label="結果内の移動">
+                    <a href="#charts-title">グラフ</a>
+                    <a href="#annual-title">年次表</a>
+                  </nav>
+                )}
+              </div>
             )}
           </div>
 
@@ -612,22 +643,13 @@ export function DividendSimulator() {
                 <KpiCard label="投資額との差" value={formatJpy(result.summary.totalGainJpy)} note={`累積リターン ${formatPercent(result.summary.cumulativeTotalReturn)}`} />
               </div>
 
-              <dl className="secondary-metrics">
-                <div><dt>累計投資</dt><dd>{formatJpy(result.summary.cumulativeContributionJpy)}</dd></div>
-                <div><dt>累計受取配当</dt><dd>{formatJpy(result.summary.cumulativeCashDividendJpy)}</dd></div>
-                <div><dt>期末口数</dt><dd>{numberFormatter.format(result.summary.endingShares)}口</dd></div>
-                <div><dt>累計投資への配当利回り</dt><dd>{formatPercent(result.summary.netYieldOnCost)}</dd></div>
-                <div><dt>元本維持率</dt><dd>{formatPercent(result.summary.principalRetention)}</dd></div>
-                <div><dt>年率収益（入出金込み）</dt><dd>{formatPercent(result.summary.xirr)}</dd></div>
-              </dl>
-
               <section className="charts-section" aria-labelledby="charts-title">
                 <div className="section-heading">
                   <div>
-                    <p className="panel-kicker">推移</p>
-                    <h2 id="charts-title">将来の推移</h2>
+                    <p className="panel-kicker">グラフ</p>
+                    <h2 id="charts-title">配当と資産の推移</h2>
                   </div>
-                  <p>下の年次表でも確認できます。</p>
+                  <p>年次表でも確認できます。</p>
                 </div>
                 <div className="charts-grid">
                   <LineChart
@@ -660,6 +682,15 @@ export function DividendSimulator() {
                   />
                 </div>
               </section>
+
+              <dl className="secondary-metrics">
+                <div><dt>累計投資</dt><dd>{formatJpy(result.summary.cumulativeContributionJpy)}</dd></div>
+                <div><dt>累計受取配当</dt><dd>{formatJpy(result.summary.cumulativeCashDividendJpy)}</dd></div>
+                <div><dt>期末口数</dt><dd>{numberFormatter.format(result.summary.endingShares)}口</dd></div>
+                <div><dt>累計投資への配当利回り</dt><dd>{formatPercent(result.summary.netYieldOnCost)}</dd></div>
+                <div><dt>元本維持率</dt><dd>{formatPercent(result.summary.principalRetention)}</dd></div>
+                <div><dt>年率収益（入出金込み）</dt><dd>{formatPercent(result.summary.xirr)}</dd></div>
+              </dl>
 
               <section className="annual-section" aria-labelledby="annual-title">
                 <div className="section-heading">

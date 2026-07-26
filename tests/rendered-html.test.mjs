@@ -33,11 +33,21 @@ test("server-renders the phase 5D simulator workspace", async () => {
   assert.match(html, /<title>分配金・配当シミュレーター<\/title>/i);
   assert.match(html, /配当・分配シミュレーション/);
   assert.match(html, /条件を入力/);
+  assert.match(html, /銘柄情報/);
+  assert.match(html, /投資条件/);
+  assert.match(html, /将来の想定/);
+  assert.match(html, /口座・税/);
+  assert.match(html, /入力した条件で結果を見る/);
   assert.match(html, /1年目の手取り配当/);
+  assert.match(html, /配当と資産の推移/);
   assert.match(html, /年間手取り配当/);
   assert.match(html, /資産の推移/);
   assert.match(html, /配当の受取と再投資/);
   assert.match(html, /年次データ/);
+  assert.ok(
+    html.indexOf("配当と資産の推移") < html.indexOf("累計投資への配当利回り"),
+    "単一銘柄のグラフは補助指標より先に表示する",
+  );
   assert.match(html, /目標を逆算/);
   assert.match(html, /将来を試算/);
   assert.match(html, /銘柄を比較/);

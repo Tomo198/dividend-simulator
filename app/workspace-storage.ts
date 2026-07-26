@@ -1,8 +1,14 @@
+import { validateSimulationInput } from "@/src/domain/dividend-simulator";
 import {
+  buildComparisonInputs,
   createInitialComparisonWorkspace,
   type CompareWorkspaceValues,
 } from "./compare-model";
-import { INITIAL_FORM_VALUES, type SimulatorFormValues } from "./simulator-model";
+import {
+  buildSimulationInput,
+  INITIAL_FORM_VALUES,
+  type SimulatorFormValues,
+} from "./simulator-model";
 
 export const WORKSPACE_STORAGE_KEY = "distribution-dividend-simulator:workspace:v1";
 export const NAMED_WORKSPACES_STORAGE_KEY = "distribution-dividend-simulator:named-workspaces:v1";
@@ -48,13 +54,44 @@ function matchesShape(value: unknown, shape: object): value is Record<string, un
     .every(([key, example]) => typeof value[key] === typeof example);
 }
 
+function isNumericStringInRange(
+  value: string,
+  minimum: number,
+  maximum = Number.POSITIVE_INFINITY,
+  integerOnly = false,
+): boolean {
+  if (value.trim() === "") return false;
+  const parsed = Number(value);
+  return Number.isFinite(parsed)
+    && parsed >= minimum
+    && parsed <= maximum
+    && (!integerOnly || Number.isInteger(parsed));
+}
+
+function isPositiveNumericString(value: string): boolean {
+  return isNumericStringInRange(value, 0) && Number(value) > 0;
+}
+
 export function isSimulatorFormValues(value: unknown): value is SimulatorFormValues {
   if (!matchesShape(value, INITIAL_FORM_VALUES)) return false;
-  return ["foreignCredit", "noForeignCredit", "nisa", "custom"].includes(String(value.taxTreatment))
+  const enumsAreValid = ["foreignCredit", "noForeignCredit", "nisa", "custom"].includes(String(value.taxTreatment))
     && ["netOfExpense", "grossBeforeExpense"].includes(String(value.returnBasis))
     && ["afterForeignTax", "grossDividend"].includes(String(value.domesticTaxBaseMode))
     && ["monthly", "annual"].includes(String(value.targetPeriod))
     && ["gross", "net"].includes(String(value.targetBasis));
+  if (!enumsAreValid) return false;
+
+  const form = value as unknown as SimulatorFormValues;
+  const years = Number(form.years);
+  return validateSimulationInput(buildSimulationInput(form)).length === 0
+    && isNumericStringInRange(form.initialYieldPercent, 0)
+    && isPositiveNumericString(form.targetAmount)
+    && isNumericStringInRange(form.targetDeadlineYears, 1, years, true)
+    && [
+      form.contributionPlanA,
+      form.contributionPlanB,
+      form.contributionPlanC,
+    ].every((amount) => isNumericStringInRange(amount, 0));
 }
 
 export function isCompareWorkspaceValues(value: unknown): value is CompareWorkspaceValues {
@@ -66,13 +103,19 @@ export function isCompareWorkspaceValues(value: unknown): value is CompareWorksp
   const validTaxValues = ["foreignCredit", "noForeignCredit", "nisa", "custom"];
   const validReturnValues = ["netOfExpense", "grossBeforeExpense"];
   const validTaxBaseValues = ["afterForeignTax", "grossDividend"];
-  return new Set(ids).size === ids.length
-    && value.assets.every((asset) => {
+  const enumsAreValid = value.assets.every((asset) => {
       const row = asset as Record<string, unknown>;
       return validTaxValues.includes(String(row.taxTreatment))
         && validReturnValues.includes(String(row.returnBasis))
         && validTaxBaseValues.includes(String(row.domesticTaxBaseMode));
     });
+  if (new Set(ids).size !== ids.length || !enumsAreValid) return false;
+
+  const comparison = value as unknown as CompareWorkspaceValues;
+  return isPositiveNumericString(comparison.common.targetMonthlyJpy)
+    && comparison.assets.every((asset) => isNumericStringInRange(asset.initialYieldPercent, 0))
+    && buildComparisonInputs(comparison)
+      .every(({ input }) => validateSimulationInput(input).length === 0);
 }
 
 export function serializeWorkspace(workspace: SavedWorkspaceV1): string {
@@ -81,7 +124,11 @@ export function serializeWorkspace(workspace: SavedWorkspaceV1): string {
 
 function isSavedWorkspaceV1(value: unknown): value is SavedWorkspaceV1 {
   if (!isRecord(value)) return false;
-  if (value.schemaVersion !== 1 || typeof value.savedAt !== "string") return false;
+  if (
+    value.schemaVersion !== 1
+    || typeof value.savedAt !== "string"
+    || Number.isNaN(Date.parse(value.savedAt))
+  ) return false;
   if (!["single", "target", "compare"].includes(String(value.activeMode))) return false;
   return isSimulatorFormValues(value.single) && isCompareWorkspaceValues(value.comparison);
 }
@@ -152,6 +199,9 @@ export function upsertNamedWorkspace(
   idForNewItem: string,
 ): NamedWorkspaceCollectionV1 {
   const normalizedName = assertValidWorkspaceName(name);
+  if (!isSavedWorkspaceV1(workspace)) {
+    throw new RangeError("入力条件を確認してください。");
+  }
   const existing = collection.items.find((item) => item.name === normalizedName);
   if (!existing && idForNewItem.length === 0) throw new RangeError("保存IDが必要です。");
   const nextItem: NamedWorkspaceV1 = {
