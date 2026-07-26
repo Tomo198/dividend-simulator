@@ -56,6 +56,7 @@ test("server-renders the phase 5D simulator workspace", async () => {
   assert.match(html, /端末保存/);
   assert.match(html, /書き出す/);
   assert.match(html, /読み込む/);
+  assert.match(html, />v1\.0\.0</);
   assert.match(html, /課税口座（外国税控除あり）/);
   assert.match(html, /現在価格/);
   assert.match(html, /配当の年間変化/);
@@ -85,6 +86,7 @@ test("keeps the specification and project boundaries in the repository", async (
   assert.match(spec, /LIFECompassとは別の独立Webアプリ/);
   assert.match(agents, /計算ロジックはUIから分離/);
   assert.match(packageJson, /"name": "distribution-dividend-simulator"/);
+  assert.match(packageJson, /"version": "1.0.0"/);
   assert.match(packageJson, /"typecheck": "tsc --noEmit"/);
   assert.match(page, /DividendSimulator/);
   assert.match(simulator, /目標配当/);

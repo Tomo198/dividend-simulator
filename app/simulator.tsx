@@ -113,7 +113,11 @@ function buildChartData(result: SimulationResult): ChartPoint[] {
   });
 }
 
-export function DividendSimulator() {
+interface DividendSimulatorProps {
+  appVersion: string;
+}
+
+export function DividendSimulator({ appVersion }: DividendSimulatorProps) {
   const [form, setForm] = useState<SimulatorFormValues>(INITIAL_FORM_VALUES);
   const [comparison, setComparison] = useState(() => createInitialComparisonWorkspace());
   const [activeMode, setActiveMode] = useState<WorkspaceMode>("single");
@@ -776,7 +780,8 @@ export function DividendSimulator() {
       )}
 
       <footer>
-        本試算は入力条件による概算で、将来の成果を保証しません。税額は口座・商品・申告状況により異なります。
+        <p>本試算は入力条件による概算で、将来の成果を保証しません。税額は口座・商品・申告状況により異なります。</p>
+        <p className="app-version">{`v${appVersion}`}</p>
       </footer>
     </div>
   );
