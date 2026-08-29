@@ -1627,7 +1627,7 @@ legend {
   border-radius: 8px;
   background: linear-gradient(180deg, rgba(243, 245, 240, 0.55), rgba(255, 255, 255, 0));
   cursor: crosshair;
-  touch-action: pan-y;
+  touch-action: pan-y pinch-zoom;
 }
 
 .chart-frame:focus-visible {
@@ -1965,17 +1965,28 @@ footer p {
     justify-content: flex-start;
   }
 
-  .chart-frame svg {
-    height: 220px;
+  .chart-card-mobile .chart-frame svg {
+    height: auto;
+    aspect-ratio: 7 / 5;
   }
 
-  .chart-point-detail {
+  .chart-card-mobile .chart-axis-label {
+    font-size: 13px;
+    font-weight: 650;
+  }
+
+  .chart-card-mobile .chart-interaction-hint {
+    font-size: 0.72rem;
+    line-height: 1.6;
+  }
+
+  .chart-card-mobile .chart-point-detail {
     align-items: flex-start;
     flex-direction: column;
     gap: 8px;
   }
 
-  .chart-point-detail dl {
+  .chart-card-mobile .chart-point-detail dl {
     width: 100%;
   }
 

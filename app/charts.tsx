@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, type KeyboardEvent, type PointerEvent } from "react";
+import { useEffect, useId, useState, type KeyboardEvent, type PointerEvent } from "react";
 
 export interface ChartPoint {
   label: string;
@@ -22,10 +22,31 @@ interface LineChartProps {
   formatDetailValue?: (value: number) => string;
 }
 
-const WIDTH = 760;
-const HEIGHT = 280;
-const PADDING = { top: 18, right: 18, bottom: 38, left: 72 };
-const Y_TICK_COUNT = 5;
+interface ChartLayout {
+  width: number;
+  height: number;
+  padding: { top: number; right: number; bottom: number; left: number };
+  yTickCount: number;
+}
+
+export interface ChartRenderConfig extends ChartLayout {
+  layoutName: "desktop" | "mobile";
+  xAxisIndexes: number[];
+}
+
+const DESKTOP_LAYOUT: ChartLayout = {
+  width: 760,
+  height: 280,
+  padding: { top: 18, right: 18, bottom: 38, left: 72 },
+  yTickCount: 5,
+};
+const MOBILE_LAYOUT: ChartLayout = {
+  width: 420,
+  height: 300,
+  padding: { top: 18, right: 14, bottom: 42, left: 66 },
+  yTickCount: 4,
+};
+const MOBILE_CHART_QUERY = "(max-width: 640px)";
 
 function getNiceMaximum(value: number): number {
   if (!(value > 0)) return 1;
@@ -51,6 +72,36 @@ function getXAxisIndexes(length: number): number[] {
   return [...years].sort((a, b) => a - b).map((year) => year - 1);
 }
 
+function getMobileXAxisIndexes(length: number): number[] {
+  if (length <= 0) return [];
+  if (length <= 4) return Array.from({ length }, (_, index) => index);
+  const lastIndex = length - 1;
+  return [0, Math.round(lastIndex / 3), Math.round(lastIndex * 2 / 3), lastIndex];
+}
+
+export function getChartRenderConfig(isMobile: boolean, dataLength: number): ChartRenderConfig {
+  const layout = isMobile ? MOBILE_LAYOUT : DESKTOP_LAYOUT;
+  return {
+    ...layout,
+    layoutName: isMobile ? "mobile" : "desktop",
+    xAxisIndexes: isMobile ? getMobileXAxisIndexes(dataLength) : getXAxisIndexes(dataLength),
+  };
+}
+
+function useMobileChartLayout(): boolean {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia(MOBILE_CHART_QUERY);
+    const update = () => setIsMobile(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+
+  return isMobile;
+}
+
 export function LineChart({
   title,
   description,
@@ -62,16 +113,24 @@ export function LineChart({
   const titleId = useId();
   const descriptionId = useId();
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const isMobileLayout = useMobileChartLayout();
+  const {
+    width,
+    height,
+    padding,
+    yTickCount,
+    layoutName,
+    xAxisIndexes,
+  } = getChartRenderConfig(isMobileLayout, data.length);
   const values = data.flatMap((point) => series.map((item) => Number(point[item.key]) || 0));
   const maximum = getNiceMaximum(Math.max(...values, 1));
-  const plotWidth = WIDTH - PADDING.left - PADDING.right;
-  const plotHeight = HEIGHT - PADDING.top - PADDING.bottom;
-  const x = (index: number) => PADDING.left + plotWidth * (data.length <= 1 ? 0 : index / (data.length - 1));
-  const y = (value: number) => PADDING.top + plotHeight * (1 - value / maximum);
-  const xAxisIndexes = getXAxisIndexes(data.length);
+  const plotWidth = width - padding.left - padding.right;
+  const plotHeight = height - padding.top - padding.bottom;
+  const x = (index: number) => padding.left + plotWidth * (data.length <= 1 ? 0 : index / (data.length - 1));
+  const y = (value: number) => padding.top + plotHeight * (1 - value / maximum);
   const yAxisValues = Array.from(
-    { length: Y_TICK_COUNT + 1 },
-    (_, index) => maximum * (1 - index / Y_TICK_COUNT),
+    { length: yTickCount + 1 },
+    (_, index) => maximum * (1 - index / yTickCount),
   );
   const selectedIndex = activeIndex === null || data.length === 0
     ? null
@@ -86,7 +145,7 @@ export function LineChart({
     pointer.x = event.clientX;
     pointer.y = event.clientY;
     const localPoint = pointer.matrixTransform(matrix.inverse());
-    const ratio = Math.min(1, Math.max(0, (localPoint.x - PADDING.left) / plotWidth));
+    const ratio = Math.min(1, Math.max(0, (localPoint.x - padding.left) / plotWidth));
     setActiveIndex(Math.round(ratio * (data.length - 1)));
     event.currentTarget.focus();
   };
@@ -105,7 +164,10 @@ export function LineChart({
   };
 
   return (
-    <figure className="chart-card">
+    <figure
+      className={`chart-card${isMobileLayout ? " chart-card-mobile" : ""}`}
+      data-chart-layout={layoutName}
+    >
       <figcaption>
         <div>
           <h3 id={titleId}>{title}</h3>
@@ -128,7 +190,7 @@ export function LineChart({
         onKeyDown={moveSelection}
       >
         <svg
-          viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+          viewBox={`0 0 ${width} ${height}`}
           role="img"
           aria-labelledby={`${titleId} ${descriptionId}`}
           preserveAspectRatio="xMidYMid meet"
@@ -136,14 +198,14 @@ export function LineChart({
           {yAxisValues.map((value) => (
             <g key={value}>
               <line
-                x1={PADDING.left}
-                x2={WIDTH - PADDING.right}
+                x1={padding.left}
+                x2={width - padding.right}
                 y1={y(value)}
                 y2={y(value)}
                 className="chart-grid-line"
               />
               <text
-                x={PADDING.left - 9}
+                x={padding.left - 9}
                 y={y(value) + 4}
                 textAnchor="end"
                 className="chart-axis-label"
@@ -157,13 +219,13 @@ export function LineChart({
               <line
                 x1={x(index)}
                 x2={x(index)}
-                y1={PADDING.top}
-                y2={HEIGHT - PADDING.bottom}
+                y1={padding.top}
+                y2={height - padding.bottom}
                 className="chart-grid-line chart-grid-line-vertical"
               />
               <text
                 x={x(index)}
-                y={HEIGHT - 10}
+                y={height - 10}
                 textAnchor={index === 0 ? "start" : index === data.length - 1 ? "end" : "middle"}
                 className="chart-axis-label"
               >
@@ -193,8 +255,8 @@ export function LineChart({
               <line
                 x1={x(selectedIndex)}
                 x2={x(selectedIndex)}
-                y1={PADDING.top}
-                y2={HEIGHT - PADDING.bottom}
+                y1={padding.top}
+                y2={height - padding.bottom}
                 className="chart-selection-line"
               />
               {series.map((item) => (
@@ -202,7 +264,7 @@ export function LineChart({
                   key={item.key}
                   cx={x(selectedIndex)}
                   cy={y(Number(selectedPoint[item.key]) || 0)}
-                  r="5"
+                  r={isMobileLayout ? 7 : 5}
                   fill={item.color}
                   className="chart-selection-dot"
                 />
