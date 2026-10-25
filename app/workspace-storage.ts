@@ -86,7 +86,12 @@ export function isSimulatorFormValues(value: unknown): value is SimulatorFormVal
   return validateSimulationInput(buildSimulationInput(form)).length === 0
     && isNumericStringInRange(form.initialYieldPercent, 0)
     && isPositiveNumericString(form.targetAmount)
-    && isNumericStringInRange(form.targetDeadlineYears, 1, years, true)
+    && isNumericStringInRange(
+      form.targetDeadlineYears,
+      1,
+      form.targetDeadlineEnabled ? years : Number.POSITIVE_INFINITY,
+      true,
+    )
     && [
       form.contributionPlanA,
       form.contributionPlanB,

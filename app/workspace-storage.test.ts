@@ -5,6 +5,7 @@ import {
   createEmptyNamedWorkspaceCollection,
   createWorkspaceBackup,
   deleteNamedWorkspace,
+  isSimulatorFormValues,
   mergeWorkspaceBackup,
   parseNamedWorkspaceCollection,
   parseSavedWorkspace,
@@ -81,6 +82,89 @@ describe("workspace storage schema", () => {
 });
 
 describe("named workspace collection", () => {
+  it.each([
+    ["1", "1"],
+    ["5", "1"],
+    ["5", "5"],
+    ["9", "9"],
+    ["10", "10"],
+  ])("期限ONで運用%s年・期限%s年の境界を保存して読み戻せる", (years, targetDeadlineYears) => {
+    const draft: SavedWorkspaceV1 = {
+      ...workspace,
+      activeMode: "target",
+      single: { ...workspace.single, years, targetDeadlineEnabled: true, targetDeadlineYears },
+    };
+    const collection = upsertNamedWorkspace(
+      createEmptyNamedWorkspaceCollection(), "期限ON", draft, "deadline-save",
+    );
+
+    expect(parseSavedWorkspace(serializeWorkspace(draft))).toEqual(draft);
+    expect(parseNamedWorkspaceCollection(serializeNamedWorkspaceCollection(collection))).toEqual(collection);
+  });
+
+  it.each([
+    ["1", "2"],
+    ["5", "6"],
+    ["9", "10"],
+    ["10", "11"],
+  ])("期限ONで運用%s年を超える期限%s年は拒否する", (years, targetDeadlineYears) => {
+    const draft: SavedWorkspaceV1 = {
+      ...workspace,
+      single: { ...workspace.single, years, targetDeadlineEnabled: true, targetDeadlineYears },
+    };
+
+    expect(parseSavedWorkspace(serializeWorkspace(draft))).toBeNull();
+    expect(() => upsertNamedWorkspace(
+      createEmptyNamedWorkspaceCollection(), "範囲外の期限", draft, "invalid-deadline",
+    )).toThrow("入力条件を確認してください");
+  });
+
+  it.each([false, true])("期限ON/OFF=%sでも空欄・非整数・非有限・1年未満を拒否する", (targetDeadlineEnabled) => {
+    for (const targetDeadlineYears of ["", "0", "-1", "1.5", "abc", "Infinity"]) {
+      const draft: SavedWorkspaceV1 = {
+        ...workspace,
+        single: { ...workspace.single, years: "5", targetDeadlineEnabled, targetDeadlineYears },
+      };
+
+      expect(isSimulatorFormValues(draft.single)).toBe(false);
+      expect(parseSavedWorkspace(serializeWorkspace(draft))).toBeNull();
+      expect(() => upsertNamedWorkspace(
+        createEmptyNamedWorkspaceCollection(), "不正な期限", draft, "invalid-deadline",
+      )).toThrow("入力条件を確認してください");
+    }
+  });
+
+  it("期限OFFでも保存データの文字列・真偽値の型検証を維持する", () => {
+    for (const fields of [{ targetDeadlineYears: 10 }, { targetDeadlineEnabled: "false" }]) {
+      const single = { ...workspace.single, years: "5", ...fields };
+      expect(isSimulatorFormValues(single)).toBe(false);
+      expect(parseSavedWorkspace(JSON.stringify({ ...workspace, single }))).toBeNull();
+    }
+  });
+
+  it.each(["1", "5", "9", "10"])("期限OFFなら運用%s年でも名前付き保存と読み戻しができる", (years) => {
+    const draft: SavedWorkspaceV1 = {
+      ...workspace,
+      activeMode: "target",
+      single: { ...workspace.single, years, targetDeadlineEnabled: false },
+    };
+    expect(draft.single.targetDeadlineYears).toBe("10");
+
+    const collection = upsertNamedWorkspace(
+      createEmptyNamedWorkspaceCollection(),
+      `点検用_20261023_${years}年`,
+      draft,
+      `save-${years}`,
+    );
+
+    expect(collection.items).toHaveLength(1);
+    expect(collection.items[0].workspace).toEqual(draft);
+    expect(parseSavedWorkspace(serializeWorkspace(draft))).toEqual(draft);
+    expect(parseNamedWorkspaceCollection(serializeNamedWorkspaceCollection(collection))).toEqual(collection);
+    const backup = createWorkspaceBackup(collection, workspace.savedAt);
+    expect(parseWorkspaceBackup(serializeWorkspaceBackup(backup))).toEqual(backup);
+  });
+
   it("複数の名前付き試算を更新日時の新しい順に保存して往復する", () => {
     const older = { ...workspace, savedAt: "2026-07-15T00:00:00.000Z" };
     const newer = {
